@@ -46,7 +46,7 @@ class Convert():
         """ Read the ical file """
         with open(ical_file_location, 'r', encoding='utf-8') as ical_file:
             data = ical_file.read()
-        self.cal = Calendar.from_ical(data)
+        self.cal = Calendar.from_ical(data, multiple=True)
         return self.cal
 
     def read_csv(
@@ -83,24 +83,31 @@ class Convert():
 
     def make_csv(self) -> None:
         """ Make CSV """
-        for event in self.cal.subcomponents:
-            if event.name != 'VEVENT':
-                continue
-            dtstart = ''
-            if event.get('DTSTART'):
-                dtstart = event.get('DTSTART').dt
-            dtend = ''
-            if event.get('DTEND'):
-                dtend = event.get('DTEND').dt
-            row = [
-                event.get('SUMMARY'),
-                dtstart,
-                dtend,
-                event.get('DESCRIPTION'),
-                event.get('LOCATION'),
-            ]
-            row = [str(x) for x in row]
-            self.csv_data.append(row)
+        for subc in self.cal:
+            for event in subc.subcomponents:
+                if event.name != 'VEVENT':
+                    continue
+                dtstart = ''
+                if event.get('DTSTART'):
+                    dtstart = event.get('DTSTART').dt
+                dtend = ''
+                if event.get('DTEND'):
+                    dtend = event.get('DTEND').dt
+                row = [
+                    event.get('SUMMARY'),
+                    dtstart,
+                    dtend,
+                    event.get('DESCRIPTION'),
+                    event.get('LOCATION'),
+                ]
+                attendees = event.get('ATTENDEE')
+                if attendees and isinstance(attendees, list) : 
+                    for attendee in attendees:
+                        row.append(attendee)
+                else:
+                    row.append(attendees) 
+                row = [str(x) for x in row]
+                self.csv_data.append(row)
 
     def save_ical(self, ical_location: str) -> None:
         """ Save the calendar instance to a file """
